@@ -33,6 +33,7 @@ import { FEATURE_FLAGS } from 'lib/constants'
 import useBreakpoint from 'antd/lib/grid/hooks/useBreakpoint'
 import { CSSTransition } from 'react-transition-group'
 import { EditorFilters } from './EditorFilters/EditorFilters'
+import { ExportButton } from 'lib/components/ExportButton/ExportButton'
 
 export function Insight({ insightId }: { insightId: InsightShortId | 'new' }): JSX.Element {
     const { insightMode } = useValues(insightSceneLogic)
@@ -120,12 +121,13 @@ export function Insight({ insightId }: { insightId: InsightShortId | 'new' }): J
                     />
                 }
                 buttons={
-                    <div className="insights-tab-actions">
+                    <div className="insights-tab-actions space-x-05">
                         {insightMode === ItemMode.Edit && insight.saved && (
                             <LemonButton type="secondary" onClick={() => cancelChanges(true)}>
                                 Cancel
                             </LemonButton>
                         )}
+                        {insightMode === ItemMode.View && insight.short_id && <ExportButton insight={insight} />}
                         {insightMode === ItemMode.View && insight.short_id && <SaveToDashboard insight={insight} />}
                         {insightMode === ItemMode.View ? (
                             canEditInsight && (
