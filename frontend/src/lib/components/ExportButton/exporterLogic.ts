@@ -37,9 +37,9 @@ export const exporterLogic = kea<exporterLogicType<ExporterLogicProps>>([
 
     listeners(({ actions, props }) => ({
         exportInsight: async ({ successCallback }, breakpoint) => {
-            await breakpoint(1000)
-
             lemonToast.info(`Export of Insight ${props.insight.name ?? props.insight.derived_name} started...`)
+
+            await breakpoint(1000)
 
             try {
                 await api.create(`api/projects/${teamLogic.values.currentTeamId}/insights/${props.insight.id}/export`)

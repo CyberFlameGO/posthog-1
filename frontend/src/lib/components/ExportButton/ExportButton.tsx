@@ -16,7 +16,7 @@ export function ExportButton({ insight }: ExportButtonProps): JSX.Element {
 
     const onClick = (): void => {
         exportInsight(() => {
-            alert('DONE!')
+            console.log('Should save file')
         })
     }
 
