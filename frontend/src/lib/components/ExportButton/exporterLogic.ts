@@ -40,7 +40,7 @@ export const exporterLogic = kea<exporterLogicType<ExporterLogicProps>>([
 
             try {
                 // NOTE: This endpoint should maybe be more specific
-                await api.create(`api/projects/${teamLogic.values.currentTeamId}/${props.type}s/${props.id}/export`)
+                await api.create(`api/projects/${teamLogic.values.currentTeamId}/${props.type}s/${props.id}/exports`)
 
                 // TODO: Start polling the retrieval endpoint up to N times...
                 actions.exportItemSuccess()

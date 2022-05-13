@@ -7,11 +7,11 @@ from django.http import HttpRequest
 from django.shortcuts import get_object_or_404
 from django.utils.timezone import now
 from django.views.decorators.clickjacking import xframe_options_exempt
-from rest_framework import exceptions, mixins, request, response, serializers, status, viewsets
+from rest_framework import exceptions, mixins, response, serializers, status, viewsets
 from rest_framework.authentication import BaseAuthentication, BasicAuthentication, SessionAuthentication
+from rest_framework.decorators import action
 from rest_framework.permissions import SAFE_METHODS, BasePermission, IsAuthenticated, OperandHolder, SingleOperandHolder
 from rest_framework.request import Request
-from rest_framework.decorators import action
 
 from posthog.api.insight import InsightSerializer, InsightViewSet
 from posthog.api.routing import StructuredViewSetMixin
@@ -270,7 +270,7 @@ class DashboardsViewSet(TaggedItemViewSetMixin, StructuredViewSetMixin, viewsets
         return response.Response(serializer.data)
 
     @action(methods=["POST"], detail=True)
-    def export(self, request: Request, *args: Any, **kwargs: Any) -> response.Response:
+    def exports(self, request: Request, *args: Any, **kwargs: Any) -> response.Response:
         pk = kwargs["pk"]
         queryset = self.get_queryset()
         dashboard = get_object_or_404(queryset, pk=pk)

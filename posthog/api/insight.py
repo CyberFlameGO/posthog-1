@@ -642,9 +642,10 @@ class InsightViewSet(TaggedItemViewSetMixin, StructuredViewSetMixin, viewsets.Mo
         return Response(status=status.HTTP_201_CREATED)
 
     @action(methods=["POST"], detail=True)
-    def export(self, request: request.Request, *args: Any, **kwargs: Any) -> Response:
+    def exports(self, request: request.Request, *args: Any, **kwargs: Any) -> Response:
         instance: Insight = self.get_object()
 
+        # TODO: Not sure if this is necessarily an interesting activity...
         log_activity(
             organization_id=self.organization.id,
             team_id=self.team_id,

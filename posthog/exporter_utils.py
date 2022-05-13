@@ -1,8 +1,5 @@
-from django.conf import settings
-
-
 # TODO: Obviously this needs to be some sort of actual security like a JWT
-def generate_exporter_token(type: str, id: str):
+def generate_exporter_token(type: str, id: int):
     return f"exp-{type}-{id}"
 
 

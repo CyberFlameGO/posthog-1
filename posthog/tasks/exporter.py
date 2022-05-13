@@ -1,19 +1,19 @@
 import os
 import uuid
-import base64
+
 import structlog
+from django.conf import settings
 from selenium import webdriver
-from selenium.webdriver.common.by import By
+from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.chrome.service import Service
+from selenium.webdriver.common.by import By
+from selenium.webdriver.support.wait import WebDriverWait
 from webdriver_manager.chrome import ChromeDriverManager
 from webdriver_manager.utils import ChromeType
-from selenium.webdriver.chrome.options import Options
-from selenium.webdriver.support.wait import WebDriverWait
-from django.conf import settings
-
 
 from posthog.celery import app
 from posthog.exporter_utils import generate_exporter_token
+from posthog.models.exported_asset import ExportedAsset
 
 logger = structlog.get_logger(__name__)
 
@@ -36,7 +36,7 @@ def get_driver():
     return _driver
 
 
-def _export_task(type: str, id: int) -> None:
+def _export_task(export_type: str, item_id: int) -> None:
     """
     Exporting an Insight means:
     1. Loading the Insight from the web app in a dedicated rendering mode
@@ -45,7 +45,6 @@ def _export_task(type: str, id: int) -> None:
     4. Cleanup: Remove the old file and close the browser session
     """
     try:
-
         image_id = str(uuid.uuid4())
         image_path = os.path.join(TMP_DIR, f"{image_id}.png")
 
@@ -55,22 +54,22 @@ def _export_task(type: str, id: int) -> None:
         if not os.path.exists(TMP_DIR):
             os.makedirs(TMP_DIR)
 
-        if type == "insight":
+        if export_type == "insight":
             # TODO: this
             url_to_render = "http://localhost:8000/shared_dashboard/P_X_66syKP_M6Fk5UAqhnKSVNlvrTQ"
             wait_for_css_selector = ".InsightCard"
             screenshot_width = 800
 
-        elif type == "dashboard":
-            token = generate_exporter_token("dashboard", id)
+        elif export_type == "dashboard":
+            token = generate_exporter_token("dashboard", item_id)
             url_to_render = f"{settings.SITE_URL}/shared_dashboard/{token}"
             wait_for_css_selector = ".InsightCard"
             screenshot_width = 1920
 
         else:
-            raise Exception(f"Export of type {type} not supported")
+            raise Exception(f"Export of type {export_type} not supported")
 
-        logger.info(f"Exporting... {type} {id}")
+        logger.info(f"Exporting... {export_type} {item_id}")
 
         screenshot_width = 800
 
@@ -85,9 +84,16 @@ def _export_task(type: str, id: int) -> None:
         browser.save_screenshot(image_path)
 
         with open(image_path, "rb") as image_file:
-            image_data_str = f"data:image/png;base64,{base64.b64encode(image_file.read())}"
+            image_data = image_file.read()
 
-        print(f"SCREENSHOT, {image_data_str}")
+        asset = ExportedAsset(
+            export_type=export_type,
+            export_format="png",
+            content=image_data,
+            dashboard_id=item_id if export_type == "dashboard" else None,
+            insight_id=item_id if export_type == "insight" else None,
+        )
+        asset.save()
 
         os.remove(image_path)
 
@@ -96,11 +102,10 @@ def _export_task(type: str, id: int) -> None:
         if os.path.exists(image_path):
             os.remove(image_path)
 
-        print(f"Export err: {err}")
-        logger.error("Export Error:", err)
+        logger.error(f"Export Error: {err}")
         raise err
 
 
 @app.task(ignore_result=True)
-def export_task(type: str, id: int) -> None:
-    _export_task(type, id)
+def export_task(export_type: str, item_id: str) -> None:
+    _export_task(export_type, item_id)
