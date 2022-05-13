@@ -22,6 +22,7 @@ import { dashboardCollaboratorsLogic } from './dashboardCollaboratorsLogic'
 import { IconLock } from 'lib/components/icons'
 import { urls } from 'scenes/urls'
 import { Link } from 'lib/components/Link'
+import { exporterLogic, ExporterLogicProps } from 'lib/components/ExportButton/exporterLogic'
 
 export function DashboardHeader(): JSX.Element | null {
     const { dashboard, allItemsLoading, dashboardMode, canEditDashboard } = useValues(dashboardLogic)
@@ -31,6 +32,10 @@ export function DashboardHeader(): JSX.Element | null {
         useActions(dashboardsModel)
     const { dashboardLoading } = useValues(dashboardsModel)
     const { hasAvailableFeature } = useValues(userLogic)
+
+    const exportLogicOptions: ExporterLogicProps = { type: 'dashboard', id: `${dashboard?.id || ''}` }
+    const { exportItem } = useActions(exporterLogic(exportLogicOptions))
+    // const { exportInProgress } = useValues(exporterLogic(exportLogicOptions))
 
     const [isShareModalVisible, setIsShareModalVisible] = useState(false)
 
@@ -157,6 +162,9 @@ export function DashboardHeader(): JSX.Element | null {
                                                         Pin dashboard
                                                     </LemonButton>
                                                 ))}
+                                            <LemonButton onClick={() => exportItem()} type="stealth" fullWidth>
+                                                Export
+                                            </LemonButton>
                                             <LemonDivider />
                                             <LemonButton
                                                 onClick={() =>

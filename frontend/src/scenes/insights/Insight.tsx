@@ -127,7 +127,9 @@ export function Insight({ insightId }: { insightId: InsightShortId | 'new' }): J
                                 Cancel
                             </LemonButton>
                         )}
-                        {insightMode === ItemMode.View && insight.short_id && <ExportButton insight={insight} />}
+                        {insightMode === ItemMode.View && insight.short_id && (
+                            <ExportButton type="insight" id={insight.short_id} />
+                        )}
                         {insightMode === ItemMode.View && insight.short_id && <SaveToDashboard insight={insight} />}
                         {insightMode === ItemMode.View ? (
                             canEditInsight && (

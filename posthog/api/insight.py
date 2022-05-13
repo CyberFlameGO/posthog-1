@@ -655,7 +655,7 @@ class InsightViewSet(TaggedItemViewSetMixin, StructuredViewSetMixin, viewsets.Mo
             detail=Detail(name=(choose_insight_name(instance)), short_id=instance.short_id),
         )
 
-        exporter.export_insight_task.delay(instance.id)
+        exporter.export_task.delay("insight", instance.id)
 
         return Response(status=status.HTTP_201_CREATED)
 

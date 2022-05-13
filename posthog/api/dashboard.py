@@ -7,10 +7,11 @@ from django.http import HttpRequest
 from django.shortcuts import get_object_or_404
 from django.utils.timezone import now
 from django.views.decorators.clickjacking import xframe_options_exempt
-from rest_framework import exceptions, mixins, response, serializers, viewsets
+from rest_framework import exceptions, mixins, request, response, serializers, status, viewsets
 from rest_framework.authentication import BaseAuthentication, BasicAuthentication, SessionAuthentication
 from rest_framework.permissions import SAFE_METHODS, BasePermission, IsAuthenticated, OperandHolder, SingleOperandHolder
 from rest_framework.request import Request
+from rest_framework.decorators import action
 
 from posthog.api.insight import InsightSerializer, InsightViewSet
 from posthog.api.routing import StructuredViewSetMixin
@@ -19,10 +20,12 @@ from posthog.api.tagged_item import TaggedItemSerializerMixin, TaggedItemViewSet
 from posthog.auth import PersonalAPIKeyAuthentication
 from posthog.constants import INSIGHT_TRENDS
 from posthog.event_usage import report_user_action
+from posthog.exporter_utils import validate_exporter_token
 from posthog.helpers import create_dashboard_from_template
 from posthog.models import Dashboard, DashboardTile, Insight, Team
 from posthog.models.user import User
 from posthog.permissions import ProjectMembershipNecessaryPermissions, TeamMemberAccessPermission
+from posthog.tasks import exporter
 from posthog.utils import render_template
 
 
@@ -266,6 +269,16 @@ class DashboardsViewSet(TaggedItemViewSetMixin, StructuredViewSetMixin, viewsets
         serializer = DashboardSerializer(dashboard, context={"view": self, "request": request})
         return response.Response(serializer.data)
 
+    @action(methods=["POST"], detail=True)
+    def export(self, request: Request, *args: Any, **kwargs: Any) -> response.Response:
+        pk = kwargs["pk"]
+        queryset = self.get_queryset()
+        dashboard = get_object_or_404(queryset, pk=pk)
+
+        exporter.export_task.delay("dashboard", dashboard.id)
+
+        return response.Response(status=status.HTTP_201_CREATED)
+
 
 class LegacyDashboardsViewSet(DashboardsViewSet):
     legacy_team_compatibility = True
@@ -286,7 +299,13 @@ class SharedDashboardsViewSet(mixins.RetrieveModelMixin, viewsets.GenericViewSet
 
 @xframe_options_exempt
 def shared_dashboard(request: HttpRequest, share_token: str):
-    dashboard = get_object_or_404(Dashboard, is_shared=True, share_token=share_token)
+    via_exporter = validate_exporter_token(share_token)
+
+    if via_exporter and via_exporter["type"] == "dashboard":
+        dashboard = get_object_or_404(Dashboard, is_shared=True, pk=via_exporter["id"])
+    else:
+        dashboard = get_object_or_404(Dashboard, is_shared=True, share_token=share_token)
+
     shared_dashboard_serialized = {
         "id": dashboard.id,
         "share_token": dashboard.share_token,

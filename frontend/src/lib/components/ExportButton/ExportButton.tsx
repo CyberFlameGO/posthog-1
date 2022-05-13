@@ -1,21 +1,15 @@
 import React from 'react'
-import { InsightModel } from '~/types'
 import { LemonButton } from '../LemonButton'
 import { IconExport } from 'lib/components/icons'
 import { useActions, useValues } from 'kea'
-import { exporterLogic } from './exporterLogic'
+import { exporterLogic, ExporterLogicProps } from './exporterLogic'
 
-interface ExportButtonProps {
-    insight: InsightModel
-}
-
-export function ExportButton({ insight }: ExportButtonProps): JSX.Element {
-    // const [openModal, setOpenModal] = useState<boolean>(false)
-    const { exportInsight } = useActions(exporterLogic({ insight }))
-    const { exportInProgress } = useValues(exporterLogic({ insight }))
+export function ExportButton({ type, id }: ExporterLogicProps): JSX.Element {
+    const { exportItem } = useActions(exporterLogic({ type, id }))
+    const { exportInProgress } = useValues(exporterLogic({ type, id }))
 
     const onClick = (): void => {
-        exportInsight(() => {
+        exportItem(() => {
             console.log('Should save file')
         })
     }
