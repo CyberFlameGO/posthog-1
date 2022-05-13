@@ -14,7 +14,6 @@ from django.conf import settings
 
 from posthog.celery import app
 from posthog.exporter_utils import generate_exporter_token
-from posthog.models import Insight
 
 logger = structlog.get_logger(__name__)
 
@@ -66,7 +65,7 @@ def _export_task(type: str, id: int) -> None:
             token = generate_exporter_token("dashboard", id)
             url_to_render = f"{settings.SITE_URL}/shared_dashboard/{token}"
             wait_for_css_selector = ".InsightCard"
-            screenshot_width = 800
+            screenshot_width = 1920
 
         else:
             raise Exception(f"Export of type {type} not supported")
