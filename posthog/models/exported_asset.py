@@ -19,7 +19,6 @@ class ExportedAsset(models.Model):
     insight = models.ForeignKey("posthog.Insight", on_delete=models.CASCADE, null=True)
 
     # Content related fields
-    export_type: models.CharField = models.CharField(max_length=16, choices=ExportType.choices)
     export_format: models.CharField = models.CharField(max_length=16, choices=ExportFormat.choices)
     content: models.JSONField = models.BinaryField(null=True)
     created_at: models.DateTimeField = models.DateTimeField(auto_now_add=True, blank=True)
@@ -33,9 +32,16 @@ class ExportedAsset(models.Model):
         ext = self.export_format.split("/")[1]
 
         filename = "export"
-        filename = f"{filename}-{slugify(self.dashboard.name)}" if self.dashboard else filename
-        filename = f"{filename}-{slugify(self.insight.name)}" if self.insight else filename
+
+        if self.dashboard and self.dashboard.name is not None:
+            filename = f"{filename}-{slugify(self.dashboard.name)}" if self.dashboard else filename
+        if self.insight and self.insight.name is not None:
+            filename = f"{filename}-{slugify(self.insight.name)}" if self.insight else filename
+
         # TODO: Add timestamp?
         filename = f"{filename}.{ext}"
 
         return filename
+
+    def get_analytics_metadata(self):
+        return {"export_format": self.export_format, "dashboard_id": self.dashboard_id, "insight_id": self.insight_id}

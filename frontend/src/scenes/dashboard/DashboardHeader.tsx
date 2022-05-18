@@ -33,7 +33,7 @@ export function DashboardHeader(): JSX.Element | null {
     const { dashboardLoading } = useValues(dashboardsModel)
     const { hasAvailableFeature } = useValues(userLogic)
 
-    const exportLogicOptions: ExporterLogicProps = { type: 'dashboard', id: `${dashboard?.id || ''}` }
+    const exportLogicOptions: ExporterLogicProps = { dashboard_id: dashboard?.id }
     const { exportItem } = useActions(exporterLogic(exportLogicOptions))
     // const { exportInProgress } = useValues(exporterLogic(exportLogicOptions))
 

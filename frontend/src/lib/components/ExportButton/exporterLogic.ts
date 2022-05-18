@@ -7,14 +7,14 @@ import { lemonToast } from '../lemonToast'
 import type { exporterLogicType } from './exporterLogicType'
 
 export interface ExporterLogicProps {
-    type: 'dashboard' | 'insight'
-    id: string
+    dashboard_id?: number
+    insight_id?: number
 }
 export const exporterLogic = kea<exporterLogicType<ExporterLogicProps>>([
     path(['lib', 'components', 'ExportButton', 'ExporterLogic']),
     props({} as ExporterLogicProps),
-    key(({ id, type }) => {
-        return `${id}:${type}`
+    key(({ dashboard_id, insight_id }) => {
+        return `dash:${dashboard_id}::insight:${insight_id}`
     }),
     actions({
         exportItem: (successCallback?: () => void) => ({ successCallback }),
@@ -35,20 +35,22 @@ export const exporterLogic = kea<exporterLogicType<ExporterLogicProps>>([
 
     listeners(({ actions, props }) => ({
         exportItem: async ({ successCallback }, breakpoint) => {
-            lemonToast.info(`Export of ${props.type}  started...`)
+            lemonToast.info(`Export started...`)
 
             await breakpoint(1000)
 
             try {
-                const { export_id } = await api.create(
-                    `api/projects/${teamLogic.values.currentTeamId}/${props.type}s/${props.id}/exports`
-                )
+                let exportedAsset = await api.create(`api/projects/${teamLogic.values.currentTeamId}/exports`, {
+                    export_format: 'image/png', // TODO: Make this controlable
+                    dashboard: props.dashboard_id,
+                    insight: props.insight_id,
+                })
 
-                if (!export_id) {
-                    throw new Error('Missin export_id from response')
+                if (!exportedAsset.id) {
+                    throw new Error('Missing export_id from response')
                 }
 
-                const downloadUrl = api.exports.determineExportUrl(export_id)
+                const downloadUrl = api.exports.determineExportUrl(exportedAsset.id)
 
                 let attempts = 0
 
@@ -56,15 +58,15 @@ export const exporterLogic = kea<exporterLogicType<ExporterLogicProps>>([
                 while (attempts < 20) {
                     attempts++
 
-                    const { has_content } = await api.get(
-                        `api/projects/${teamLogic.values.currentTeamId}/exports/${export_id}`
+                    exportedAsset = await api.get(
+                        `api/projects/${teamLogic.values.currentTeamId}/exports/${exportedAsset.id}`
                     )
 
                     await delay(2000)
 
-                    if (has_content) {
+                    if (exportedAsset.has_content) {
                         actions.exportItemSuccess()
-                        lemonToast.success(`Export of ${props.type} complete.`)
+                        lemonToast.success(`Export complete.`)
                         successCallback?.()
 
                         console.log('should open ', downloadUrl)
@@ -78,7 +80,7 @@ export const exporterLogic = kea<exporterLogicType<ExporterLogicProps>>([
                 throw new Error('Content not loaded in time...')
             } catch (e) {
                 actions.exportItemFailure()
-                lemonToast.error(`Export of ${props.type} failed.`)
+                lemonToast.error(`Export failed.`)
             }
         },
     })),

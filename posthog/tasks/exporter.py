@@ -57,21 +57,21 @@ def _export_task(exported_asset_id: int) -> None:
         if not os.path.exists(TMP_DIR):
             os.makedirs(TMP_DIR)
 
-        if exported_asset.export_type == "insight":
+        if exported_asset.insight is not None:
             # TODO: this
             url_to_render = "http://localhost:8000/shared_dashboard/P_X_66syKP_M6Fk5UAqhnKSVNlvrTQ"
             wait_for_css_selector = ".InsightCard"
             screenshot_width = 800
 
-        elif exported_asset.export_type == "dashboard":
+        elif exported_asset.dashboard is not None:
             token = generate_exporter_token("dashboard", exported_asset.dashboard.id)
             url_to_render = f"{settings.SITE_URL}/shared_dashboard/{token}"
             wait_for_css_selector = ".InsightCard"
             screenshot_width = 1920
         else:
-            raise Exception(f"Export of type {exported_asset.export_type} not supported")
+            raise Exception(f"Export is missing required dashboard or insight ID")
 
-        logger.info(f"Exporting... {exported_asset.export_type} {exported_asset.id}")
+        logger.info(f"Exporting...{exported_asset.id}")
 
         browser = get_driver()
         browser.set_window_size(screenshot_width, screenshot_width)

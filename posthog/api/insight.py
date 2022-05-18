@@ -64,7 +64,6 @@ from posthog.models.insight import InsightViewed, generate_insight_cache_key
 from posthog.permissions import ProjectMembershipNecessaryPermissions, TeamMemberAccessPermission
 from posthog.queries.util import get_earliest_timestamp
 from posthog.settings import SITE_URL
-from posthog.tasks import exporter
 from posthog.tasks.update_cache import update_insight_cache
 from posthog.utils import (
     format_query_params_absolute_url,
@@ -639,25 +638,6 @@ class InsightViewSet(TaggedItemViewSetMixin, StructuredViewSetMixin, viewsets.Mo
         InsightViewed.objects.update_or_create(
             team=self.team, user=request.user, insight=self.get_object(), defaults={"last_viewed_at": now()}
         )
-        return Response(status=status.HTTP_201_CREATED)
-
-    @action(methods=["POST"], detail=True)
-    def exports(self, request: request.Request, *args: Any, **kwargs: Any) -> Response:
-        instance: Insight = self.get_object()
-
-        # TODO: Not sure if this is necessarily an interesting activity...
-        log_activity(
-            organization_id=self.organization.id,
-            team_id=self.team_id,
-            user=request.user,
-            item_id=instance.id,
-            scope="Insight",
-            activity="manually exported",
-            detail=Detail(name=(choose_insight_name(instance)), short_id=instance.short_id),
-        )
-
-        exporter.export_task.delay("insight", instance.id)
-
         return Response(status=status.HTTP_201_CREATED)
 
     def destroy(self, request, *args, **kwargs):
