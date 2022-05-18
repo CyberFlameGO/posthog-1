@@ -73,8 +73,6 @@ def _export_task(exported_asset_id: int) -> None:
 
         logger.info(f"Exporting... {exported_asset.export_type} {exported_asset.id}")
 
-        screenshot_width = 800
-
         browser = get_driver()
         browser.set_window_size(screenshot_width, screenshot_width)
         browser.get(url_to_render)

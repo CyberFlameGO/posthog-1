@@ -1,5 +1,6 @@
 import { actions, kea, key, listeners, path, props, reducers } from 'kea'
 import api from 'lib/api'
+import { delay } from 'lib/utils'
 import { teamLogic } from 'scenes/teamLogic'
 import { lemonToast } from '../lemonToast'
 
@@ -39,13 +40,42 @@ export const exporterLogic = kea<exporterLogicType<ExporterLogicProps>>([
             await breakpoint(1000)
 
             try {
-                // NOTE: This endpoint should maybe be more specific
-                await api.create(`api/projects/${teamLogic.values.currentTeamId}/${props.type}s/${props.id}/exports`)
+                const { export_id } = await api.create(
+                    `api/projects/${teamLogic.values.currentTeamId}/${props.type}s/${props.id}/exports`
+                )
 
-                // TODO: Start polling the retrieval endpoint up to N times...
-                actions.exportItemSuccess()
-                lemonToast.success(`Export of ${props.type} complete.`)
-                successCallback?.()
+                if (!export_id) {
+                    throw new Error('Missin export_id from response')
+                }
+
+                const downloadUrl = api.exports.determineExportUrl(export_id)
+
+                let attempts = 0
+
+                // TODO: Move this to some sort of Kea-style polling
+                while (attempts < 20) {
+                    attempts++
+
+                    const { has_content } = await api.get(
+                        `api/projects/${teamLogic.values.currentTeamId}/exports/${export_id}`
+                    )
+
+                    await delay(2000)
+
+                    if (has_content) {
+                        actions.exportItemSuccess()
+                        lemonToast.success(`Export of ${props.type} complete.`)
+                        successCallback?.()
+
+                        console.log('should open ', downloadUrl)
+
+                        window.open(downloadUrl, '_blank')
+
+                        return
+                    }
+                }
+
+                throw new Error('Content not loaded in time...')
             } catch (e) {
                 actions.exportItemFailure()
                 lemonToast.error(`Export of ${props.type} failed.`)

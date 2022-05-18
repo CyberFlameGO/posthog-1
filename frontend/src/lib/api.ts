@@ -350,6 +350,17 @@ const api = {
         },
     },
 
+    exports: {
+        determineExportUrl(exportId: number, teamId: TeamType['id'] = getCurrentTeamId()): string {
+            return new ApiRequest()
+                .projectsDetail(teamId)
+                .withAction('exports')
+                .withAction(`${exportId}`)
+                .withAction('content')
+                .assembleFullUrl(true)
+        },
+    },
+
     events: {
         async get(
             id: EventType['id'],
