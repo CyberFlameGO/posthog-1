@@ -36,7 +36,7 @@ def get_driver():
     return _driver
 
 
-def _export_task(export_type: str, item_id: int) -> None:
+def _export_task(exported_asset_id: int) -> None:
     """
     Exporting an Insight means:
     1. Loading the Insight from the web app in a dedicated rendering mode
@@ -44,6 +44,9 @@ def _export_task(export_type: str, item_id: int) -> None:
     3. Loading that screenshot into memory and saving the data representation to the relevant Insight
     4. Cleanup: Remove the old file and close the browser session
     """
+
+    exported_asset = ExportedAsset.objects.get(pk=exported_asset_id)
+
     try:
         image_id = str(uuid.uuid4())
         image_path = os.path.join(TMP_DIR, f"{image_id}.png")
@@ -54,22 +57,21 @@ def _export_task(export_type: str, item_id: int) -> None:
         if not os.path.exists(TMP_DIR):
             os.makedirs(TMP_DIR)
 
-        if export_type == "insight":
+        if exported_asset.export_type == "insight":
             # TODO: this
             url_to_render = "http://localhost:8000/shared_dashboard/P_X_66syKP_M6Fk5UAqhnKSVNlvrTQ"
             wait_for_css_selector = ".InsightCard"
             screenshot_width = 800
 
-        elif export_type == "dashboard":
-            token = generate_exporter_token("dashboard", item_id)
+        elif exported_asset.export_type == "dashboard":
+            token = generate_exporter_token("dashboard", exported_asset.dashboard.id)
             url_to_render = f"{settings.SITE_URL}/shared_dashboard/{token}"
             wait_for_css_selector = ".InsightCard"
             screenshot_width = 1920
-
         else:
-            raise Exception(f"Export of type {export_type} not supported")
+            raise Exception(f"Export of type {exported_asset.export_type} not supported")
 
-        logger.info(f"Exporting... {export_type} {item_id}")
+        logger.info(f"Exporting... {exported_asset.export_type} {exported_asset.id}")
 
         screenshot_width = 800
 
@@ -86,14 +88,8 @@ def _export_task(export_type: str, item_id: int) -> None:
         with open(image_path, "rb") as image_file:
             image_data = image_file.read()
 
-        asset = ExportedAsset(
-            export_type=export_type,
-            export_format="png",
-            content=image_data,
-            dashboard_id=item_id if export_type == "dashboard" else None,
-            insight_id=item_id if export_type == "insight" else None,
-        )
-        asset.save()
+        exported_asset.content = image_data
+        exported_asset.save()
 
         os.remove(image_path)
 
@@ -107,5 +103,5 @@ def _export_task(export_type: str, item_id: int) -> None:
 
 
 @app.task(ignore_result=True)
-def export_task(export_type: str, item_id: str) -> None:
-    _export_task(export_type, item_id)
+def export_task(exported_asset_id: int) -> None:
+    _export_task(exported_asset_id)

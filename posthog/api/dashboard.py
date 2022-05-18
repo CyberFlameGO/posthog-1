@@ -7,7 +7,7 @@ from django.http import HttpRequest
 from django.shortcuts import get_object_or_404
 from django.utils.timezone import now
 from django.views.decorators.clickjacking import xframe_options_exempt
-from rest_framework import exceptions, mixins, response, serializers, status, viewsets
+from rest_framework import exceptions, mixins, response, serializers, viewsets
 from rest_framework.authentication import BaseAuthentication, BasicAuthentication, SessionAuthentication
 from rest_framework.decorators import action
 from rest_framework.permissions import SAFE_METHODS, BasePermission, IsAuthenticated, OperandHolder, SingleOperandHolder
@@ -23,6 +23,7 @@ from posthog.event_usage import report_user_action
 from posthog.exporter_utils import validate_exporter_token
 from posthog.helpers import create_dashboard_from_template
 from posthog.models import Dashboard, DashboardTile, Insight, Team
+from posthog.models.exported_asset import ExportedAsset
 from posthog.models.user import User
 from posthog.permissions import ProjectMembershipNecessaryPermissions, TeamMemberAccessPermission
 from posthog.tasks import exporter
@@ -275,9 +276,13 @@ class DashboardsViewSet(TaggedItemViewSetMixin, StructuredViewSetMixin, viewsets
         queryset = self.get_queryset()
         dashboard = get_object_or_404(queryset, pk=pk)
 
-        exporter.export_task.delay("dashboard", dashboard.id)
+        asset = ExportedAsset(
+            export_format="image/png", export_type="dashboard", dashboard=dashboard, team=dashboard.team
+        )
+        asset.save()
+        exporter.export_task.delay(asset.id)
 
-        return response.Response(status=status.HTTP_201_CREATED)
+        return response.Response({"export_id": asset.id})
 
 
 class LegacyDashboardsViewSet(DashboardsViewSet):
@@ -302,7 +307,7 @@ def shared_dashboard(request: HttpRequest, share_token: str):
     via_exporter = validate_exporter_token(share_token)
 
     if via_exporter and via_exporter["type"] == "dashboard":
-        dashboard = get_object_or_404(Dashboard, is_shared=True, pk=via_exporter["id"])
+        dashboard = get_object_or_404(Dashboard, pk=via_exporter["id"])
     else:
         dashboard = get_object_or_404(Dashboard, is_shared=True, share_token=share_token)
 
