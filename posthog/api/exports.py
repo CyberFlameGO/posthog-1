@@ -33,8 +33,6 @@ class ExportedAssetViewSet(mixins.RetrieveModelMixin, StructuredViewSetMixin, vi
     ]
     permission_classes = [IsAuthenticated, ProjectMembershipNecessaryPermissions, TeamMemberAccessPermission]
 
-    lookup_field = "id"
-
     @action(methods=["GET"], detail=True)
     def content(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         instance = self.get_object()
