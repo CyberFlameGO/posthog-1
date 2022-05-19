@@ -59,7 +59,8 @@ def _export_task(exported_asset_id: int) -> None:
 
         if exported_asset.insight is not None:
             # TODO: this
-            url_to_render = "http://localhost:8000/shared_dashboard/P_X_66syKP_M6Fk5UAqhnKSVNlvrTQ"
+            token = generate_exporter_token("dashboard", 1)
+            url_to_render = f"{settings.SITE_URL}/shared_dashboard/{token}"
             wait_for_css_selector = ".InsightCard"
             screenshot_width = 800
 
