@@ -11,9 +11,9 @@ from posthog.test.base import APIBaseTest
 
 @patch("posthog.api.exports.exporter")
 class TestExports(APIBaseTest):
-    exported_asset: ExportedAsset = None
-    dashboard: Dashboard = None
-    insight: Insight = None
+    exported_asset: ExportedAsset = None  # type: ignore
+    dashboard: Dashboard = None  # type: ignore
+    insight: Insight = None  # type: ignore
 
     @classmethod
     def setUpTestData(cls):

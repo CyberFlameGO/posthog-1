@@ -17,12 +17,12 @@ from posthog.models.exported_asset import ExportedAsset
 
 logger = structlog.get_logger(__name__)
 
-_driver = None
+_driver: webdriver.Chrome = None
 
 TMP_DIR = "/tmp"  # NOTE: Externalise this to ENV var
 
 # TODO: This should be somehow run at build time to ensure the chrome binary is pre-downloaded
-def get_driver():
+def get_driver() -> webdriver.Chrome:
     global _driver
     if not _driver:
 
