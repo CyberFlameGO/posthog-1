@@ -1,6 +1,8 @@
+import json
 from typing import Any, Dict
 
-from django.http import HttpResponse
+from django.http import HttpRequest, HttpResponse
+from django.shortcuts import get_object_or_404
 from rest_framework import mixins, serializers, viewsets
 from rest_framework.authentication import BasicAuthentication, SessionAuthentication
 from rest_framework.decorators import action
@@ -12,9 +14,12 @@ from rest_framework.response import Response
 from posthog.api.routing import StructuredViewSetMixin
 from posthog.auth import PersonalAPIKeyAuthentication
 from posthog.event_usage import report_user_action
+from posthog.exporter_utils import validate_exporter_token
+from posthog.models.dashboard import Dashboard
 from posthog.models.exported_asset import ExportedAsset
 from posthog.permissions import ProjectMembershipNecessaryPermissions, TeamMemberAccessPermission
 from posthog.tasks import exporter
+from posthog.utils import render_template
 
 
 class ExportedAssetSerializer(serializers.ModelSerializer):
@@ -63,3 +68,26 @@ class ExportedAssetViewSet(
         res["Content-Disposition"] = f'attachment; filename="{instance.filename}"'
 
         return res
+
+
+def exporter_page(request: HttpRequest, export_token: str):
+    via_exporter = validate_exporter_token(export_token)
+
+    if via_exporter and via_exporter["type"] == "dashboard":
+        dashboard = get_object_or_404(Dashboard, pk=via_exporter["id"])
+    else:
+        dashboard = get_object_or_404(Dashboard, is_shared=True, share_token=export_token)
+
+    shared_dashboard_serialized = {
+        "id": dashboard.id,
+        "share_token": dashboard.share_token,
+        "name": dashboard.name,
+        "description": dashboard.description,
+        "team_name": dashboard.team.name,
+    }
+
+    return render_template(
+        "exporter.html",
+        request=request,
+        context={"shared_dashboard_serialized": json.dumps(shared_dashboard_serialized)},
+    )

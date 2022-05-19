@@ -45,6 +45,7 @@ def _export_task(exported_asset_id: int) -> None:
     4. Cleanup: Remove the old file and close the browser session
     """
 
+    # TODO: Do we want to ensure that the data for the relvant Insight(s) are up-to-date before exporting
     exported_asset = ExportedAsset.objects.get(pk=exported_asset_id)
 
     try:

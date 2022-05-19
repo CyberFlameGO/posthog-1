@@ -40,6 +40,8 @@ function createEntry(entry) {
                     ? './frontend/src/toolbar/index.tsx'
                     : entry === 'shared_dashboard'
                     ? './frontend/src/scenes/dashboard/SharedDashboard.tsx'
+                    : entry === 'exporter'
+                    ? './frontend/src/scenes/exporter/ExportViewer.tsx'
                     : null,
         },
         watchOptions: {
@@ -199,13 +201,13 @@ function createEntry(entry) {
                       }),
                       new HtmlWebpackHarddiskPlugin(),
                   ]
-                : entry === 'shared_dashboard'
+                : ['share_dashboard', 'exporter'].includes(entry)
                 ? [
                       new HtmlWebpackPlugin({
                           alwaysWriteToDisk: true,
                           title: 'PostHog',
-                          filename: 'shared_dashboard.html',
-                          template: path.join(__dirname, 'frontend', 'src', 'shared_dashboard.ejs'),
+                          filename: `${entry}.html`,
+                          template: path.join(__dirname, 'frontend', 'src', `${entry}.ejs`),
                       }),
                       new HtmlWebpackHarddiskPlugin(),
                   ]
@@ -219,5 +221,10 @@ function createEntry(entry) {
 // main = app
 // toolbar = toolbar
 // shared_dashboard = publicly available dashboard
-module.exports = () => [createEntry('main'), createEntry('toolbar'), createEntry('shared_dashboard')]
+module.exports = () => [
+    createEntry('main'),
+    createEntry('toolbar'),
+    createEntry('shared_dashboard'),
+    createEntry('exporter'),
+]
 module.exports.createEntry = createEntry
